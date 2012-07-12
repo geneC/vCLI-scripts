@@ -103,45 +103,44 @@ if (defined($status_all)) {
 	print_service_status_all($host_svc, $services, "  ");
 } elsif (defined($list)) {
 	list_services_all($host_svc, $services, "  ");
-} else {
-	if ($#ARGV >= 0) {
-		my $isvc = $ARGV[0];
-		$svcid = $isvc;
-		my $valid = 1;
-		if ($#ARGV == 0) {
-			if (defined($policy)) {
-				set_service_policy($host_svc, $svcid, $policy);
-				$host_svc = get_host_serviceSystem($host_view);
-				get_print_service_status($host_svc, $svcid, $service);
-			} else {
-				Opts::usage();
-			}
-		} else {
-			my $cmd = $ARGV[1];
-			my $valcmd = 1;
-			switch ($cmd) {
-				case "start"	{
-					print "Starting '" . $svcid . "': ";
-					start_service($host_svc, $svcid, $service);	}
-				case "status"	{ }
-				case "stop"	{ 
-					print "Stopping '" . $svcid . "': ";
-					stop_service($host_svc, $svcid, $service); }
-				else		{ $valcmd = 0; }
-			}
-			if ($valcmd) {
-				if (defined($policy)) {
-					set_service_policy($host_svc, $svcid, $policy);
-				}
-				$host_svc = get_host_serviceSystem($host_view);
-				get_print_service_status($host_svc, $svcid, $service);
-			} else {
-				print "Command '" . $cmd . "' not valid\n";
-			}
+} elsif ($#ARGV >= 0) {
+	my $isvc = $ARGV[0];
+	$svcid = $isvc;
+	my $valid = 1;
+	if ($#ARGV == 0) {
+		if (!defined($policy)) {	$valid = 0;	}
+	} else {
+		my $cmd = $ARGV[1];
+		my $valcmd = 1;
+		switch ($cmd) {
+			case "restart"	{
+				print "Restarting '" . $svcid . "': ";
+				restart_service($host_svc, $svcid, $service);	}
+			case "start"	{
+				print "Starting '" . $svcid . "': ";
+				start_service($host_svc, $svcid, $service);	}
+			case "status"	{ }
+			case "stop"	{ 
+				print "Stopping '" . $svcid . "': ";
+				stop_service($host_svc, $svcid, $service); }
+			else		{ $valcmd = 0; }
 		}
+		if (!$valcmd) {
+			print "Command '" . $cmd . "' not valid\n";
+			$valid = 0;
+		}
+	}
+	if ($valid) {
+		if (defined($policy)) {
+			set_service_policy($host_svc, $svcid, $policy);
+		}
+		$host_svc = get_host_serviceSystem($host_view);
+		get_print_service_status($host_svc, $svcid, $service, "  ");
 	} else {
 		Opts::usage();
 	}
+} else {
+	Opts::usage();
 }
 
 
@@ -161,13 +160,34 @@ sub get_host_serviceSystem {
 # 	return Vim::get_view (mo_ref => $host_view->configManager->serviceSystem);
 }
 
-sub start_service {
+sub restart_service {
 	my ($host_svc, $svcid, $service) = @_;
-	if (!defined($service)) {
+	if ((!defined($service)) || ($service->key ne $svcid)) {
 		$service = get_service(($host_svc, $svcid));
 	}
 	if (!defined($service)){
-		print "No service '" . $svcid . "'\n";
+		VIExt::fail("No service '" . $svcid . "'\n");
+	}
+	if ($service->running) {
+		dprint2("Service '" . $svcid . "' is currently running\n");
+	} else {
+		dprint2("Service '" . $svcid . "' is currently stopped\n");
+	}
+	dprint2("RestartService(", $svcid, "): ");
+	eval { $host_svc->RestartService(id => $svcid); };
+	if ($@) {
+		print "Error restarting '" . $svcid . "': {" . $@ . "}\n";
+	}
+	$_[2] = $service;
+}
+
+sub start_service {
+	my ($host_svc, $svcid, $service) = @_;
+	if ((!defined($service)) || ($service->key ne $svcid)) {
+		$service = get_service(($host_svc, $svcid));
+	}
+	if (!defined($service)){
+		VIExt::fail("No service '" . $svcid . "'\n");
 	}
 	if ($service->running) {
 		print "Service '" . $svcid . "': already running\n";
@@ -175,20 +195,23 @@ sub start_service {
 	} else {
 		dprint2("Service '" . $svcid . "' is currently stopped\n");
 	}
+	dprint2("StartService(", $svcid, "): ");
 	eval { $host_svc->StartService(id => $svcid); };
 	if ($@) {
 		print "Error starting '" . $svcid . "': {" . $@ . "}\n";
+	} else {
+		dprint2("Started\n");
 	}
 	$_[2] = $service;
 }
 
 sub stop_service {
 	my ($host_svc, $svcid, $service) = @_;
-	if (!defined($service)) {
+	if ((!defined($service)) || ($service->key ne $svcid)) {
 		$service = get_service(($host_svc, $svcid));
 	}
 	if (!defined($service)){
-		print "No service '" . $svcid . "'\n";
+		VIExt::fail("No service '" . $svcid . "'");
 	}
 	if (! $service->running) {
 		print "Service '" . $svcid . "': already stopped\n";
@@ -196,6 +219,7 @@ sub stop_service {
 	} else {
 		dprint2("Service '" . $svcid . "' is currently running\n");
 	}
+	dprint2("StopService(", $svcid, "): ");
 	eval { $host_svc->StopService(id => $svcid); };
 	if ($@) {
 		print "Error stopping '" . $svcid . "': {" . $@ . "}\n";
@@ -212,10 +236,12 @@ sub set_service_policy {
 }
 
 sub get_print_service_status {
-	my ($host_svc, $svcid, $service) = @_;
-	$service = get_service($host_svc, $svcid);
+	my ($host_svc, $svcid, $service, $p) = @_;
+	if ((!defined($service)) || ($service->key ne $svcid)) {
+		$service = get_service(($host_svc, $svcid));
+	}
 	if (defined($service)) {
-		print_service_status($service, "  ");
+		print_service_status($service, $p);
 	} else {
 		print $svcid . " not found\n";
 	}
