@@ -162,12 +162,8 @@ sub get_host_serviceSystem {
 
 sub restart_service {
 	my ($host_svc, $svcid, $service) = @_;
-	if ((!defined($service)) || ($service->key ne $svcid)) {
-		$service = get_service(($host_svc, $svcid));
-	}
-	if (!defined($service)){
-		VIExt::fail("No service '" . $svcid . "'\n");
-	}
+	get_service_verify_fail($host_svc, $svcid, $service);
+	$_[2] = $service;
 	if ($service->running) {
 		dprint2("Service '" . $svcid . "' is currently running\n");
 	} else {
@@ -177,18 +173,15 @@ sub restart_service {
 	eval { $host_svc->RestartService(id => $svcid); };
 	if ($@) {
 		print "Error restarting '" . $svcid . "': {" . $@ . "}\n";
+	} else {
+		dprint2("Restarted\n");
 	}
-	$_[2] = $service;
 }
 
 sub start_service {
 	my ($host_svc, $svcid, $service) = @_;
-	if ((!defined($service)) || ($service->key ne $svcid)) {
-		$service = get_service(($host_svc, $svcid));
-	}
-	if (!defined($service)){
-		VIExt::fail("No service '" . $svcid . "'\n");
-	}
+	get_service_verify_fail($host_svc, $svcid, $service);
+	$_[2] = $service;
 	if ($service->running) {
 		print "Service '" . $svcid . "': already running\n";
 		return;
@@ -202,17 +195,12 @@ sub start_service {
 	} else {
 		dprint2("Started\n");
 	}
-	$_[2] = $service;
 }
 
 sub stop_service {
 	my ($host_svc, $svcid, $service) = @_;
-	if ((!defined($service)) || ($service->key ne $svcid)) {
-		$service = get_service(($host_svc, $svcid));
-	}
-	if (!defined($service)){
-		VIExt::fail("No service '" . $svcid . "'");
-	}
+	get_service_verify_fail($host_svc, $svcid, $service);
+	$_[2] = $service;
 	if (! $service->running) {
 		print "Service '" . $svcid . "': already stopped\n";
 		return;
@@ -223,8 +211,9 @@ sub stop_service {
 	eval { $host_svc->StopService(id => $svcid); };
 	if ($@) {
 		print "Error stopping '" . $svcid . "': {" . $@ . "}\n";
+	} else {
+		dprint2("Stopped\n");
 	}
-	$_[2] = $service;
 }
 
 sub set_service_policy {
@@ -246,6 +235,17 @@ sub get_print_service_status {
 		print $svcid . " not found\n";
 	}
 	$_[2] = $service;	# passback
+}
+
+sub get_service_verify_fail {
+	my ($host_svc, $svcid, $service) = @_;
+	if ((!defined($service)) || ($service->key ne $svcid)) {
+		$service = get_service(($host_svc, $svcid));
+	}
+	if (!defined($service)){
+		VIExt::fail("No service '" . $svcid . "'\n");
+	}
+	$_[2] = $service;
 }
 
 sub get_service {
@@ -280,7 +280,10 @@ sub print_service_status_all {
 
 sub print_service_status {
 	my ($s, $p) = @_;	# service, line prefix
-	print $p . "'" . $s->key . "' is " . (($s->running) ? "running" : "stopped") . " with policy of '" . $s->policy . "'\n";
+	if (!defined($p)) { $p = "" }
+	if (defined($s) && UNIVERSAL::isa($s, 'HostService')) {
+		print $p . "'" . $s->key . "' is " . (($s->running) ? "running" : "stopped") . " with policy of '" . $s->policy . "'\n";
+	}
 }
 
 sub dprint {	if ($debug) {	print @_;	}	}
