@@ -1,9 +1,19 @@
 #!/usr/bin/perl
 
+#
+# Copyright 2012 Gene Cumm
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, Inc., 53 Temple Place Ste 330,
+#   Boston MA 02111-1307, USA; either version 2 of the License, or
+#   (at your option) any later version; incorporated herein by reference.
+#
+
 use strict;
 use warnings;
 
-my $debug = 1;
+my $debug = 0;
 my $stime = 10;
 
 use Switch;
@@ -149,7 +159,6 @@ Util::disconnect();
 
 sub get_host_view_serviceSystem {
 	return VIExt::get_host_view(1, ['configManager.serviceSystem', 'name']);
-# 	return VIExt::get_host_view(1);
 }
 
 #	use this instead of $host_svc->RefreshServices(); since it doesn't
