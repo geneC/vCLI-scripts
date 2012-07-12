@@ -279,10 +279,10 @@ sub print_service_status_all {
 }
 
 sub print_service_status {
-	my ($s, $p) = @_;	# service, line prefix
+	my ($sv, $p) = @_;	# service, line prefix
 	if (!defined($p)) { $p = "" }
-	if (defined($s) && UNIVERSAL::isa($s, 'HostService')) {
-		print $p . "'" . $s->key . "' is " . (($s->running) ? "running" : "stopped") . " with policy of '" . $s->policy . "'\n";
+	if (defined($sv) && UNIVERSAL::isa($sv, 'HostService')) {
+		print $p . "'" . $sv->key . "' is " . (($sv->running) ? "running" : "stopped") . " with policy of '" . $sv->policy . "'\n";
 	}
 }
 
