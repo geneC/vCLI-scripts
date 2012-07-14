@@ -190,13 +190,24 @@ sub restart_service {
 	$_[2] = $service;
 	if ($service->running) {
 		dprint2("Service '" . $svcid . "' is currently running\n");
-	} else {
+	} else {	# on v5,stopped may be restarted
 		dprint2("Service '" . $svcid . "' is currently stopped\n");
 	}
 	dprint2("RestartService(", $svcid, "): ");
 	eval { $host_svc->RestartService(id => $svcid); };
 	if ($@) {
-		print "Error restarting '" . $svcid . "': {" . $@ . "}\n";
+	  my $kf = 0;	# known fault
+	  if (ref($@) eq 'SoapFault') {
+	    if (defined $@->{name}) {
+		if ($@->{name} eq 'InvalidStateFault') {
+			$kf = 1;
+			print "Service '" . $svcid . "': Invalid state for restart; likely stopped\n";
+		}
+	    }
+	  }
+	  if ($kf == 0) {
+			print "Error restarting '" . $svcid . "': {" . $@ . "}\n";
+	  }
 	} else {
 		dprint2("Restarted\n");
 	}
@@ -215,7 +226,18 @@ sub start_service {
 	dprint2("StartService(", $svcid, "): ");
 	eval { $host_svc->StartService(id => $svcid); };
 	if ($@) {
+	  my $kf = 0;	# known fault
+	  if (ref($@) eq 'SoapFault') {
+	    if (defined $@->{name}) {
+		if ($@->{name} eq 'InvalidStateFault') {
+			$kf = 1;
+			print "Service '" . $svcid . "': Invalid state for start; likely running\n";
+		}
+	    }
+	  }
+	  if ($kf == 0) {
 		print "Error starting '" . $svcid . "': {" . $@ . "}\n";
+	  }
 	} else {
 		dprint2("Started\n");
 	}
@@ -234,7 +256,18 @@ sub stop_service {
 	dprint2("StopService(", $svcid, "): ");
 	eval { $host_svc->StopService(id => $svcid); };
 	if ($@) {
-		print "Error stopping '" . $svcid . "': {" . $@ . "}\n";
+	  my $kf = 0;	# known fault
+	  if (ref($@) eq 'SoapFault') {
+	    if (defined $@->{name}) {
+		if ($@->{name} eq 'InvalidStateFault') {
+			$kf = 1;
+			print "Service '" . $svcid . "': Invalid state for stop; likely stopped\n";
+		}
+	    }
+	  }
+	  if ($kf == 0) {
+			print "Error stopping '" . $svcid . "': {" . $@ . "}\n";
+	  }
 	} else {
 		dprint2("Stopped\n");
 	}
