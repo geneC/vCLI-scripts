@@ -41,6 +41,12 @@ my %opts = (
       help => qq!  The username to use against the managed entity (alias for --username). !,
       required => 0,
    },
+   pass => {
+      alias => "p",
+      type => "=s",
+      help => qq!  The password to use against the managed entity (alias for --password). !,
+      required => 0,
+   },
    'status-all' => {
       type => "",
       help => qq!  Queries the status of all services on the host!,
