@@ -88,6 +88,15 @@ if (defined($host)) {
 	$host = $server;
 }
 my $vihost = Opts::get_option('vihost');
+my $user = Opts::get_option('user');
+if (defined($user)) {
+	Opts::set_option('username', $user);
+}
+my $pass = Opts::get_option('pass');
+if (defined($pass)) {
+	Opts::set_option('password', $pass);
+}
+
 my $verbose = Opts::get_option('v');
 if (defined($verbose)) {
 	Opts::set_option('verbose', $verbose);
