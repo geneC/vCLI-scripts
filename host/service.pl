@@ -77,7 +77,9 @@ my %opts = (
 );
 
 Opts::add_options(%opts);
+dprint2("Options added\n");
 Opts::parse();
+dprint2("Options parsed\n");
 
 my $status_all = Opts::get_option('status-all');
 my $list = Opts::get_option('list');
@@ -93,6 +95,9 @@ if (defined($host)) {
 	$host = $server;
 }
 my $vihost = Opts::get_option('vihost');
+if (defined($vihost)) {
+	$host = $vihost;
+}
 my $user = Opts::get_option('user');
 if (defined($user)) {
 	Opts::set_option('username', $user);
@@ -108,7 +113,14 @@ if (defined($verbose)) {
 } else {
 	$verbose = Opts::get_option('verbose');
 }
-
+if (Opts::option_is_set('debug')) {
+	my $idbg = Opts::get_option('debug');
+	if ($idbg eq "") { $idbg = 1;}
+	if ($idbg > $debug) { $debug = int($idbg); }
+}
+if ($debug) {
+	print "debug=$debug\n";
+}
 
 my $svcid;	# Service ID
 
@@ -118,8 +130,11 @@ if (defined($vihost)) {
 }
 
 Opts::validate();
+dprint2("Options validated\n");
 
 Util::connect();
+dprint2("Util::connect()\n");
+$svc_cont = get_service_content($svc_cont);
 
 my $host_view = get_host_view_serviceSystem();
 Opts::assert_usage(defined($host_view), "Invalid host.");
