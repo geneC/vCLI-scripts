@@ -124,7 +124,7 @@ if ($debug) {
 
 my $svcid;	# Service ID
 
-print "--Server: '" . $host . "'\n";
+print "--Server: '" . $server . "'\n";
 if (defined($vihost)) {
 	print "  --viHost: '" . $vihost . "'\n";
 }
@@ -226,7 +226,7 @@ sub restart_service {
 	    }
 	  }
 	  if ($kf == 0) {
-			print "Error restarting '" . $svcid . "': {" . $@ . "}\n";
+		print "Error restarting '" . $svcid . "': {" . $@ . "}\n";
 	  }
 	} else {
 		dprint2("Restarted\n");
@@ -286,7 +286,7 @@ sub stop_service {
 	    }
 	  }
 	  if ($kf == 0) {
-			print "Error stopping '" . $svcid . "': {" . $@ . "}\n";
+		print "Error stopping '" . $svcid . "': {" . $@ . "}\n";
 	  }
 	} else {
 		dprint2("Stopped\n");
