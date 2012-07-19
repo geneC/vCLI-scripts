@@ -350,6 +350,7 @@ sub print_service_status {
 
 sub dprint {	if ($debug) {	print @_;	}	}
 sub dprint2 {	if ($debug >= 2) {	print @_;	}	}
+sub printerr {	print STDERR @_;	}
 
 
 __END__
