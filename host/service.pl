@@ -51,26 +51,31 @@ my %opts = (
       type => "",
       help => qq!  Queries the status of all services on the host!,
       required => 0,
-   },      
+   },
    'list' => {
       alias => 'l',
       type => "",
       help => qq!  Lists the services!,
       required => 0,
-   },      
+   },
    'policy' => {
       type => "=s",
       help => qq!  Sets the startup policy (on/off/automatic)!,
       required => 0,
-   },      
+   },
    'v' => {
-      alias => 'v',
       type => ":s",
       help => qq!  Verbose output!,
       required => 0,
-   },      
+   },
+   'debug' => {
+      alias => 'd',
+      type => ":s",
+      help => qq!  Debug output!,
+      required => 0,
+   },
 );
- 
+
 Opts::add_options(%opts);
 Opts::parse();
 
