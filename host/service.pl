@@ -204,6 +204,127 @@ sub get_host_serviceSystem {
 # 	return Vim::get_view (mo_ref => $host_view->configManager->serviceSystem);
 }
 
+sub cmd_ok {
+	return ($_[0] =~ /^(query|restart|start|status|stop)$/);
+}
+
+# Present continuous indicative
+sub cmd_conj_pci {
+	my ($c, $cpci) = @_;
+	if (defined($cpci)) {	return $cpci;	}
+	if (defined($c)) {
+		switch($c) {
+		case /^(query|restart|start)$/	{ return $c . "ing"; }
+		case "stop"	{ return "stopping"; }
+		}
+	}
+}
+
+# Present perfect indicative
+sub cmd_conj_ppi {
+	my ($c, $cppi) = @_;
+	if (defined($cppi)) {	return $cppi;	}
+	if (defined($c)) {
+		switch($c) {
+		case /^(query|restart|start)$/	{ return $c . "ed"; }
+		case "stop"	{ return "stopped"; }
+		}
+	}
+}
+
+sub cmd2state_cur {
+	return run2st(cmd2run_cur(@_));
+}
+
+sub cmd2state_opp {
+	return run2st(cmd2run_opp(@_));
+}
+
+sub cmd2run_cur {
+	if (defined($_[0])) {
+		switch($_[0]) {
+		case "start"	{ return 0; }
+		case /^(stop|restart)$/	{ return 1; }
+		else		{ return; }
+		}
+	}
+}
+
+sub cmd2run_opp {
+	if (defined($_[0])) {
+		switch($_[0]) {
+		case "start"	{ return 1; }
+		case /^(stop|restart)$/	{ return 0; }
+		else		{ return; }
+		}
+	}
+}
+
+sub run2st {
+	return (defined($_[0]) ? ($_[0] ? "running" : "stopped") : "");
+}
+
+sub cmd2func {
+	my ($c) = @_;
+	if (defined($c) && ($c =~ /^(restart|start|stop)$/)) {
+		return ucfirst($c) . "Service";
+	}
+	return;
+}
+
+sub service_command_print {
+	my ($host_svc, $svcid, $service, $c, $cpci, $cppi) = @_;
+	my $ret;
+	if (!defined($c)) {
+		printerr("No command specified\n");
+		return;
+	}
+	if (!cmd_ok($c)) {
+		printerr("Unknown command '$c'\n");
+		return;
+	}
+	get_service_verify_fail($host_svc, $svcid, $service);
+	print "Service '$svcid' " . cmd_conj_pci($c) . ":  ";
+	$ret = service_command($host_svc, $svcid, $service, $c, $cpci, $cppi);
+	if ($ret == 0) {
+		print "\tdone.\n";
+	} else {	#error message printed in service_command()
+	}
+}
+
+sub service_command {
+	my ($host_svc, $svcid, $service, $c, $cpci, $cppi) = @_;
+	my $ret = 0;
+	if (!defined($c)) {
+		printerr("No command specified\n");
+		return;
+	}
+	if (!cmd_ok($c)) {
+		printerr("Unknown command '$c'\n");
+		return;
+	}
+	dprint2("service_command('$svcid', '$c')\n");
+	$cpci = cmd_conj_pci($c, $cpci);
+	dprint2("  $cpci\n");
+	get_service_verify_fail($host_svc, $svcid, $service);
+	$_[2] = $service;
+	if (($service->running) != cmd2run_cur($c)) {
+		print("\nService '$svcid' is currently " . run2st($service->running) . " but should be " . run2st($service->running ? 0 : 1) . " for command '$c'\n");
+		return 2;
+	} else {
+		dprint2("Service '$svcid' is currently " . run2st($service->running) . "\n");
+	}
+	my $func = cmd2func($c);
+	dprint2($func . "(", $svcid, "): ");
+	eval { $host_svc->$func(id => $svcid); };
+	if ($@) {
+	  $ret = svc_err($@, $svcid, $c) + 1;
+	} else {
+		dprint2(cmd_conj_ppi($c, $cppi) . "\n");
+	}
+	return $ret;
+}
+
 sub restart_service {
 	my ($host_svc, $svcid, $service) = @_;
 	get_service_verify_fail($host_svc, $svcid, $service);
@@ -372,6 +493,29 @@ sub print_service_status {
 	if (defined($sv) && UNIVERSAL::isa($sv, 'HostService')) {
 		print $p . "'" . $sv->key . "' is " . (($sv->running) ? "running" : "stopped") . " with policy of '" . $sv->policy . "'\n";
 	}
+}
+
+# Error handler
+#	svc_err($@, $svcid, $c);
+sub svc_err {
+	my ($err, $svcid, $c) = @_;
+	my $kf = 0;	# known fault
+	if (ref($err) eq 'SoapFault') {
+	  if (defined $err->{name}) {
+		if ($err->{name} eq 'InvalidStateFault') {
+			$kf = 1;
+			printerr("Service '$svcid': Invalid state for $c; "
+			  . "likely " . cmd2state_opp($c) . "; previously detected as " . $service->running . "\n");
+		} elsif ($err->{name} eq 'RestrictedVersionFault') {
+			$kf = 2;
+			printerr("Command not supported on free licenses\n");
+		}
+	  }
+	}
+	if ($kf == 0) {
+		printerr("Error " . cmd_conj_pci($c) . " '$svcid': {$err}\n");
+	}
+	return $kf;
 }
 
 sub dprint {	if ($debug) {	print @_;	}	}
