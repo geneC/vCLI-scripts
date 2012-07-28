@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 #
-# Copyright 2012 Gene Cumm
+# Copyright 2012 Gene Cumm <gene.cumm@gmail.com>
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
