@@ -23,12 +23,14 @@ use VMware::VIExt;
 
 
 my %opts = (
+	# esxcli uses -s for --server
    host => {
       alias => "H",
       type => "=s",
       help => qq!  The managed entity (vCenter / ESX(i) host; an alias for --server). !,
       required => 0,
    },
+	# esxcli uses -h for --vihost
    vihost => {
       alias => "h",
       type => "=s",
