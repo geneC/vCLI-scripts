@@ -136,7 +136,13 @@ dprint2("Options validated\n");
 
 Util::connect();
 dprint2("Util::connect()\n");
-$svc_cont = get_service_content($svc_cont);
+if ($debug >= 2) {
+	# no need to call this for now outside of debugging
+	$svc_cont = get_service_content($svc_cont);
+	my $abt = $svc_cont->about;
+	dprint2("    Version: '" . $abt->version . "' 'b" . $abt->build . "'\n");
+}
+
 
 my $host_view = get_host_view_serviceSystem();
 Opts::assert_usage(defined($host_view), "Invalid host.");
