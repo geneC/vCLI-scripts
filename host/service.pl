@@ -142,8 +142,42 @@ my $host_view = get_host_view_serviceSystem();
 Opts::assert_usage(defined($host_view), "Invalid host.");
 dprint("  Host name: '" . $host_view->{'name'} . "'\n");
 
+sub svc_main_host{
+	if (defined($vihost)) {
+		print "  --viHost: '" . $vihost . "'\n";
+	}
+	$host_view = get_host_view_serviceSystem();
+	dprint2("get_host_view_serviceSystem()-done\n");
+	Opts::assert_usage(defined($host_view), "Invalid host: '$host'.");
+	if ($debug >= 1) {
+		dprint("  Host name: '" . $host_view->{'name'} . "'\n");
+	}
+	if ($debug >= 2) {
+		$host_prod = get_host_product($host_view);
+		dprint2("Got host product\n");
+		dprint2("    Version: '" . $host_prod->version . "' '" . $host_prod->build . "'\n");
+	}
+
+	$host_svc = get_host_serviceSystem($host_view);
+
+	$services = $host_svc->{serviceInfo}->{service};
+
+	svc_main();
+}
 my $host_svc = get_host_serviceSystem($host_view);
 my ($service, $services);
+
+sub svc_main {
+	if (defined($status_all)) {
+		print_service_status_all($host_svc, $services, "  ");
+	} elsif (defined($list)) {
+		list_services_all($host_svc, $services, "  ");
+	} elsif ($#ARGV >= 0) {
+		svc_cmd(@ARGV);
+	} else {
+		Opts::usage();
+	}
+}
 
 $services = $host_svc->{serviceInfo}->{service};
 if (defined($status_all)) {
