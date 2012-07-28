@@ -316,17 +316,28 @@ sub get_print_service_status {
 
 sub get_service_verify_fail {
 	my ($host_svc, $svcid, $service) = @_;
+	if (!defined($svcid)) {
+		VIExt::fail("ERROR in get_service_verify_fail():Empty \$svcid\n");
+	}
 	if ((!defined($service)) || ($service->key ne $svcid)) {
 		$service = get_service(($host_svc, $svcid));
 	}
 	if (!defined($service)){
-		VIExt::fail("No service '" . $svcid . "'\n");
+		VIExt::fail("No service '" . $svcid . "' found\n");
 	}
 	$_[2] = $service;
 }
 
 sub get_service {
 	my ($host_svc, $svcid) = @_;
+	if (!defined($svcid)) {
+		dprint2("get_service(): No \$svcid\n");
+		return;
+	}
+	if (!defined($host_svc) || !UNIVERSAL::isa($host_svc, 'HostServiceSystem')) {
+		dprint2("get_service(): \$host_svc not valid\n");
+		return;
+	}
 	my $service;
 	my $services = $host_svc->{serviceInfo}->{service};
 	foreach(@$services) {
