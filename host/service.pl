@@ -224,12 +224,25 @@ if (defined($status_all)) {
 	Opts::usage();
 }
 
+sub get_service_content {
+	if (defined($_[0]) && UNIVERSAL::isa($host_svc, 'ServiceContent')) {
+		return $_[0];
+	} else {
+		return Vim::get_service_content();
+	}
+}
 
 # Disconnect from the server
 Util::disconnect();
 
 sub get_host_view_serviceSystem {
-	return VIExt::get_host_view(1, ['configManager.serviceSystem', 'name']);
+	if (!($verbose || $debug)) {
+		return VIExt::get_host_view(1, ['configManager.serviceSystem']);
+	} elsif ($debug < 2) {
+		return VIExt::get_host_view(1, ['configManager.serviceSystem', 'name']);
+	} else {
+		return VIExt::get_host_view(1, ['configManager.serviceSystem', 'name', 'config']);
+	}
 }
 
 #	use this instead of $host_svc->RefreshServices(); since it doesn't
@@ -238,6 +251,13 @@ sub get_host_serviceSystem {
 	my ($host_view) = @_;
 	return Vim::get_view (mo_ref => $host_view->{'configManager.serviceSystem'});
 # 	return Vim::get_view (mo_ref => $host_view->configManager->serviceSystem);
+}
+
+sub get_host_product {
+	my ($host_view) = @_;
+	# config is not a managed object
+# 	return Vim::get_view(mo_ref => $host_view->{'config.product'});
+	return $host_view->config->product;
 }
 
 sub cmd_ok {
