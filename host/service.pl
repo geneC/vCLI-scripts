@@ -125,11 +125,13 @@ if ($debug) {
 }
 
 my $svcid;	# Service ID
+my $host_view;
+my $host_prod;
+my ($service, $services);
+my $host_svc;
+my $svc_cont;
 
 print "--Server: '" . $server . "'\n";
-if (defined($vihost)) {
-	print "  --viHost: '" . $vihost . "'\n";
-}
 
 Opts::validate();
 dprint2("Options validated\n");
@@ -143,10 +145,30 @@ if ($debug >= 2) {
 	dprint2("    Version: '" . $abt->version . "' 'b" . $abt->build . "'\n");
 }
 
+# my $host_view = get_host_view_serviceSystem();
+# dprint2("get_host_view_serviceSystem()-done\n");
+# Opts::assert_usage(defined($host_view), "Invalid host: '$host'.");
+# dprint("  Host name: '" . $host_view->{'name'} . "'\n");
+# my $host_prod = get_host_product($host_view);
+# dprint2("Got host product\n");
+# dprint2("    Version: '" . $host_prod->version . "' '" . $host_prod->build . "'\n");
+# 
+# my $host_svc = get_host_serviceSystem($host_view);
+# my ($service, $services);
+# 
+# $services = $host_svc->{serviceInfo}->{service};
+#
+# my $isvc = $ARGV[0];
+# $svcid = (defined($isvc) ? $isvc : "TSM-SSH");
+# my $cmd = (defined($ARGV[1]) ? $ARGV[1] : "start");
+# service_command_print($host_svc, $svcid, $service, $cmd);
+# $host_svc = get_host_serviceSystem($host_view);
+# get_print_service_status($host_svc, $svcid, $service, "  ");
+# svc_main();
+svc_main_host();
 
-my $host_view = get_host_view_serviceSystem();
-Opts::assert_usage(defined($host_view), "Invalid host.");
-dprint("  Host name: '" . $host_view->{'name'} . "'\n");
+# Disconnect from the server
+Util::disconnect();
 
 sub svc_main_host{
 	if (defined($vihost)) {
@@ -170,8 +192,6 @@ sub svc_main_host{
 
 	svc_main();
 }
-my $host_svc = get_host_serviceSystem($host_view);
-my ($service, $services);
 
 sub svc_main {
 	if (defined($status_all)) {
@@ -185,32 +205,21 @@ sub svc_main {
 	}
 }
 
-$services = $host_svc->{serviceInfo}->{service};
-if (defined($status_all)) {
-	print_service_status_all($host_svc, $services, "  ");
-} elsif (defined($list)) {
-	list_services_all($host_svc, $services, "  ");
-} elsif ($#ARGV >= 0) {
-	my $isvc = $ARGV[0];
+sub svc_cmd {
+	my ($isvc) = @_;
 	$svcid = $isvc;
 	my $valid = 1;
-	if ($#ARGV == 0) {
+	if ($#_ == 0) {
 		if (!defined($policy)) {	$valid = 0;	}
 	} else {
-		my $cmd = $ARGV[1];
+		my $cmd = $_[1];
 		my $valcmd = 1;
 		switch ($cmd) {
-			case "restart"	{
-				print "Restarting '" . $svcid . "': ";
-				restart_service($host_svc, $svcid, $service);	}
-			case "start"	{
-				print "Starting '" . $svcid . "': ";
-				start_service($host_svc, $svcid, $service);	}
-			case "status"	{ }
-			case "stop"	{ 
-				print "Stopping '" . $svcid . "': ";
-				stop_service($host_svc, $svcid, $service); }
-			else		{ $valcmd = 0; }
+		case /^(query|status)$/	{ }
+		case /^((|re)start|stop)$/	{
+			service_command_print($host_svc, $svcid, $service, $cmd);
+			}
+		else		{ $valcmd = 0; }
 		}
 		if (!$valcmd) {
 			print "Command '" . $cmd . "' not valid\n";
@@ -226,8 +235,6 @@ if (defined($status_all)) {
 	} else {
 		Opts::usage();
 	}
-} else {
-	Opts::usage();
 }
 
 sub get_service_content {
@@ -237,9 +244,6 @@ sub get_service_content {
 		return Vim::get_service_content();
 	}
 }
-
-# Disconnect from the server
-Util::disconnect();
 
 sub get_host_view_serviceSystem {
 	if (!($verbose || $debug)) {
